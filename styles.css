@@ -1,0 +1,168 @@
+/* ============================================================================
+   Status bar
+   ============================================================================ */
+
+.wh-statusbar {
+	cursor: pointer;
+	user-select: none;
+	transition: opacity 0.15s;
+}
+.wh-statusbar:hover {
+	opacity: 0.7;
+}
+
+/* ============================================================================
+   Popover (floating panel)
+   ============================================================================ */
+
+.wh-popover {
+	position: fixed;
+	z-index: 1000;
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 8px;
+	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+	padding: 16px;
+	min-width: 460px;
+	max-width: 560px;
+	font-family: var(--font-interface);
+}
+
+.wh-popover-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 12px;
+}
+
+.wh-popover-title {
+	font-weight: 600;
+	font-size: 14px;
+	color: var(--text-normal);
+}
+
+.wh-popover-close {
+	cursor: pointer;
+	font-size: 20px;
+	color: var(--text-muted);
+	padding: 0 4px;
+	line-height: 1;
+	border-radius: 4px;
+	transition: background 0.15s;
+}
+.wh-popover-close:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.wh-popover-content {
+	overflow-x: auto;
+}
+
+.wh-summary {
+	margin-top: 10px;
+	font-size: 12px;
+	color: var(--text-muted);
+	text-align: right;
+}
+
+/* ============================================================================
+   Heatmap SVG
+   ============================================================================ */
+
+svg.wh-heatmap {
+	overflow: visible;
+	display: block;
+}
+
+.wh-heatmap .wh-cell {
+	cursor: pointer;
+	stroke-width: 1px;
+	transition: stroke 0.1s;
+}
+
+.wh-heatmap .wh-cell:hover {
+	stroke: var(--text-normal) !important;
+	stroke-width: 1.5px;
+}
+
+.wh-heatmap .wh-today {
+	stroke: #dd7c09 !important;
+	stroke-width: 1.5px;
+}
+
+.wh-heatmap .wh-month-label,
+.wh-heatmap .wh-day-label {
+	font-size: 9px;
+	fill: var(--text-muted);
+	user-select: none;
+}
+
+/* ============================================================================
+   Light theme — GitHub green palette
+   ============================================================================ */
+
+.theme-light .wh-level-0 {
+	fill: #ebedf0;
+	stroke: rgba(27, 31, 35, 0.06);
+}
+.theme-light .wh-level-1 {
+	fill: #9be9a8;
+	stroke: rgba(27, 31, 35, 0.06);
+}
+.theme-light .wh-level-2 {
+	fill: #40c463;
+	stroke: rgba(27, 31, 35, 0.06);
+}
+.theme-light .wh-level-3 {
+	fill: #30a14e;
+	stroke: rgba(27, 31, 35, 0.06);
+}
+.theme-light .wh-level-4 {
+	fill: #216e39;
+	stroke: rgba(27, 31, 35, 0.06);
+}
+
+/* ============================================================================
+   Dark theme — GitHub green palette (dark variant)
+   ============================================================================ */
+
+.theme-dark .wh-level-0 {
+	fill: #161b22;
+	stroke: rgba(255, 255, 255, 0.05);
+}
+.theme-dark .wh-level-1 {
+	fill: #0e4429;
+	stroke: rgba(255, 255, 255, 0.05);
+}
+.theme-dark .wh-level-2 {
+	fill: #006d32;
+	stroke: rgba(255, 255, 255, 0.05);
+}
+.theme-dark .wh-level-3 {
+	fill: #26a641;
+	stroke: rgba(255, 255, 255, 0.05);
+}
+.theme-dark .wh-level-4 {
+	fill: #39d353;
+	stroke: rgba(255, 255, 255, 0.05);
+}
+
+/* ============================================================================
+   Tooltip
+   ============================================================================ */
+
+.wh-tooltip {
+	position: fixed;
+	z-index: 1001;
+	background: var(--background-secondary);
+	color: var(--text-normal);
+	padding: 6px 12px;
+	border-radius: 6px;
+	font-size: 12px;
+	font-family: var(--font-interface);
+	pointer-events: none;
+	box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+	white-space: nowrap;
+	display: none;
+}

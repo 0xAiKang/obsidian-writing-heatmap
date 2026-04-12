@@ -1,0 +1,10 @@
+{
+	"id": "obsidian-writing-heatmap",
+	"name": "Writing Heatmap",
+	"version": "1.0.0",
+	"minAppVersion": "1.0.0",
+	"description": "GitHub-style heatmap for daily note creation and writing word count. Visualize your writing habit.",
+	"author": "0xAiKang",
+	"authorUrl": "https://github.com/0xAiKang",
+	"isDesktopOnly": false
+}
