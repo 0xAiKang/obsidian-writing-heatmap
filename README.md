@@ -67,7 +67,7 @@ This means "Hello 世界" = 7 characters. Optimized for Chinese-first writing wi
 ### Manual Installation
 
 1. Download `main.js`, `manifest.json`, and `styles.css` from the [latest release](https://github.com/0xAiKang/obsidian-writing-heatmap/releases/latest)
-2. Create a folder `obsidian-writing-heatmap` in your vault's `.obsidian/plugins/` directory
+2. Create a folder `writing-heatmap` in your vault's `.obsidian/plugins/` directory
 3. Copy the three files into that folder
 4. Restart Obsidian and enable the plugin in Settings → Community plugins
 

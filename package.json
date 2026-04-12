@@ -1,5 +1,5 @@
 {
-	"name": "obsidian-writing-heatmap",
+	"name": "writing-heatmap",
 	"version": "1.0.0",
 	"description": "GitHub-style writing activity heatmap for Obsidian",
 	"main": "main.js",
