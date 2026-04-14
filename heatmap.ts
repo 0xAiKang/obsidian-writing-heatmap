@@ -71,8 +71,10 @@ function showTooltip(e: MouseEvent, day: DayDatum): void {
 	if (!tooltipEl) {
 		tooltipEl = document.body.createDiv("wh-tooltip");
 	}
-	tooltipEl.style.display = "block";
-	tooltipEl.innerHTML = `<strong>${day.date}</strong> · 📝 ${day.created} 篇 · ✍️ ${day.totalWords.toLocaleString()} 字`;
+	tooltipEl.addClass("wh-tooltip--visible");
+	tooltipEl.empty();
+	tooltipEl.createEl("strong").appendText(day.date);
+	tooltipEl.appendText(` · 📝 ${day.created} 篇 · ✍️ ${day.totalWords.toLocaleString()} 字`);
 	positionTooltip(e);
 }
 
@@ -83,7 +85,7 @@ function positionTooltip(e: MouseEvent): void {
 }
 
 function hideTooltip(): void {
-	if (tooltipEl) tooltipEl.style.display = "none";
+	if (tooltipEl) tooltipEl.removeClass("wh-tooltip--visible");
 }
 
 // ============================================================================
@@ -144,13 +146,13 @@ export class HeatmapRenderer {
 			if (day.date === todayStr) rect.classList.add("wh-today");
 
 			rect.addEventListener("mouseenter", (e) =>
-				showTooltip(e as MouseEvent, day)
+				showTooltip(e, day)
 			);
 			rect.addEventListener("mousemove", (e) =>
-				positionTooltip(e as MouseEvent)
+				positionTooltip(e)
 			);
 			rect.addEventListener("mouseleave", hideTooltip);
-			rect.addEventListener("click", () => openDailyNote(app, day.date));
+			rect.addEventListener("click", () => { void openDailyNote(app, day.date); });
 
 			svg.appendChild(rect);
 		}
@@ -229,7 +231,7 @@ export class HeatmapPopover {
 		// Header
 		const header = el.createDiv("wh-popover-header");
 		header.createEl("span", {
-			text: "Writing Heatmap",
+			text: "Writing heatmap",
 			cls: "wh-popover-title",
 		});
 		const closeBtn = header.createEl("span", {

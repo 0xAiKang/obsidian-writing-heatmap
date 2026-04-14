@@ -119,7 +119,7 @@ export class Tracker {
 
 	onCreate(file: TFile): void {
 		if (this.matcher.isExcluded(file.path)) return;
-		this.addFile(file).then(() => {
+		void this.addFile(file).then(() => {
 			this.onUpdate();
 			this.schedulePersist();
 		});
@@ -139,7 +139,7 @@ export class Tracker {
 				? this.updateFile(file)
 				: this.addFile(file);
 
-			op.then(() => {
+			void op.then(() => {
 				this.onUpdate();
 				this.schedulePersist();
 			});
@@ -166,7 +166,7 @@ export class Tracker {
 
 		if (wasExcluded && !isExcluded) {
 			// Moved into tracked area → add
-			this.addFile(file).then(() => {
+			void this.addFile(file).then(() => {
 				this.onUpdate();
 				this.schedulePersist();
 			});

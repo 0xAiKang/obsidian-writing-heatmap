@@ -166,3 +166,6 @@ svg.wh-heatmap {
 	white-space: nowrap;
 	display: none;
 }
+.wh-tooltip--visible {
+	display: block;
+}
