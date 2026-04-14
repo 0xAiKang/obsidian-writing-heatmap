@@ -1,6 +1,25 @@
 import { App, TFile, Notice, normalizePath } from "obsidian";
 import type { WritingHeatmapSettings } from "./settings";
 
+// Minimal types for Obsidian internal APIs not exposed in the public type definitions
+interface ObsidianInternalPlugin {
+	enabled: boolean;
+	instance?: {
+		options?: Record<string, string>;
+	};
+}
+
+type AppWithInternals = App & {
+	internalPlugins?: {
+		plugins?: Record<string, ObsidianInternalPlugin>;
+	};
+};
+
+type WindowWithMoment = Window &
+	typeof globalThis & {
+		moment?: (date: string, format?: string) => { format: (fmt: string) => string };
+	};
+
 // ============================================================================
 // Date helpers
 // ============================================================================
@@ -103,8 +122,7 @@ export class FileMatcher {
 
 	/** Re-read template folder setting from the Templates core plugin. */
 	refresh(): void {
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const internals = (this.app as any).internalPlugins?.plugins;
+		const internals = (this.app as AppWithInternals).internalPlugins?.plugins;
 		const templates = internals?.templates;
 		if (templates?.enabled && templates.instance?.options?.folder) {
 			this.templateFolder = normalizePath(templates.instance.options.folder);
@@ -182,7 +200,7 @@ export function countWords(text: string, includeCodeBlocks: boolean): number {
 	t = t.replace(/<[^>]+>/g, "");
 
 	// Markdown symbols (headers, emphasis, lists, quotes, tables, etc.)
-	t = t.replace(/[#*_~>|`\-+=\[\](){}<>/\\!]/g, "");
+	t = t.replace(/[#*_~>|`\-+=[\](){}<>/\\!]/g, "");
 
 	// All whitespace (spaces, tabs, newlines)
 	t = t.replace(/\s+/g, "");
@@ -199,8 +217,7 @@ export function countWords(text: string, includeCodeBlocks: boolean): number {
  * Reads folder + filename format from the Daily Notes core plugin.
  */
 export async function openDailyNote(app: App, dateStr: string): Promise<void> {
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	const dailyNotes = (app as any).internalPlugins?.plugins?.["daily-notes"];
+	const dailyNotes = (app as AppWithInternals).internalPlugins?.plugins?.["daily-notes"];
 	if (!dailyNotes?.enabled) {
 		new Notice("Daily Notes core plugin is not enabled");
 		return;
@@ -211,8 +228,7 @@ export async function openDailyNote(app: App, dateStr: string): Promise<void> {
 	const format: string = options.format || "YYYY-MM-DD";
 
 	// Obsidian ships moment.js on window
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	const moment = (window as any).moment;
+	const moment = (window as WindowWithMoment).moment;
 	if (!moment) {
 		new Notice("moment.js not available");
 		return;

@@ -39,11 +39,11 @@ export class WritingHeatmapSettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 		containerEl.empty();
 
-		containerEl.createEl("h2", { text: "Writing Heatmap" });
+		new Setting(containerEl).setName("Writing heatmap").setHeading();
 
 		// --- Exclude patterns ---
 		new Setting(containerEl)
-			.setName("排除模式 (Exclude patterns)")
+			.setName("Exclude patterns")
 			.setDesc(
 				"不参与统计的文件 / 文件夹。每行一个，支持 glob（如 templates/**、**/archive/**）。" +
 					"Templates 核心插件配置的模板文件夹会自动排除。"
@@ -64,7 +64,7 @@ export class WritingHeatmapSettingTab extends PluginSettingTab {
 
 		// --- Include patterns (whitelist) ---
 		new Setting(containerEl)
-			.setName("白名单模式 (Include patterns)")
+			.setName("Include patterns")
 			.setDesc(
 				"如果填写了，则只统计匹配这些模式的文件。留空表示不启用白名单。每行一个 glob。"
 			)
@@ -84,7 +84,7 @@ export class WritingHeatmapSettingTab extends PluginSettingTab {
 
 		// --- Code blocks toggle ---
 		new Setting(containerEl)
-			.setName("代码块计入字数 (Count code blocks)")
+			.setName("Count code blocks")
 			.setDesc(
 				"是否把代码块（```…```）和行内代码（`code`）里的内容计入字数统计。"
 			)
@@ -99,12 +99,12 @@ export class WritingHeatmapSettingTab extends PluginSettingTab {
 
 		// --- Color by ---
 		new Setting(containerEl)
-			.setName("热力图着色维度 (Color by)")
+			.setName("Color by")
 			.setDesc("方格颜色深浅反映每日笔记数还是字数。")
 			.addDropdown((d) =>
 				d
-					.addOption("words", "字数 (Words)")
-					.addOption("notes", "笔记数 (Notes)")
+					.addOption("words", "字数 (words)")
+					.addOption("notes", "笔记数 (notes)")
 					.setValue(this.plugin.settings.colorBy)
 					.onChange(async (v) => {
 						this.plugin.settings.colorBy = v as "words" | "notes";
@@ -114,7 +114,7 @@ export class WritingHeatmapSettingTab extends PluginSettingTab {
 
 		// --- Rebuild button ---
 		new Setting(containerEl)
-			.setName("重建索引 (Rebuild index)")
+			.setName("Rebuild index")
 			.setDesc(
 				"如果数据不准确，点击此按钮强制重新扫描所有文件。"
 			)
@@ -122,15 +122,13 @@ export class WritingHeatmapSettingTab extends PluginSettingTab {
 				b
 					.setButtonText("Rebuild")
 					.setCta()
-					.onClick(async () => {
+					.onClick(() => {
 						b.setButtonText("Rebuilding…").setDisabled(true);
-						await this.plugin.tracker.rebuild();
-						this.plugin.refreshUI();
-						b.setButtonText("Done!").setDisabled(false);
-						window.setTimeout(
-							() => b.setButtonText("Rebuild"),
-							2000
-						);
+						void this.plugin.tracker.rebuild().then(() => {
+							this.plugin.refreshUI();
+							b.setButtonText("Done!").setDisabled(false);
+							window.setTimeout(() => { b.setButtonText("Rebuild"); }, 2000);
+						});
 					})
 			);
 	}

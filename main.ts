@@ -35,9 +35,9 @@ export default class WritingHeatmapPlugin extends Plugin {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, raw?.settings);
 
 		// --- Tracker ---
-		this.tracker = new Tracker(this.app, this.settings, () =>
-			this.persistData()
-		);
+		this.tracker = new Tracker(this.app, this.settings, () => {
+			void this.persistData();
+		});
 		this.tracker.onUpdate = () => this.refreshUI();
 
 		// --- UI: status bar ---
@@ -50,7 +50,7 @@ export default class WritingHeatmapPlugin extends Plugin {
 		// --- UI: ribbon icon ---
 		this.ribbonEl = this.addRibbonIcon(
 			"bar-chart-2",
-			"Writing Heatmap",
+			"Writing heatmap",
 			() => this.togglePopover()
 		);
 
