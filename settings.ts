@@ -39,8 +39,6 @@ export class WritingHeatmapSettingTab extends PluginSettingTab {
 		const { containerEl } = this;
 		containerEl.empty();
 
-		new Setting(containerEl).setName("Writing heatmap").setHeading();
-
 		// --- Exclude patterns ---
 		new Setting(containerEl)
 			.setName("Exclude patterns")
@@ -49,7 +47,7 @@ export class WritingHeatmapSettingTab extends PluginSettingTab {
 					"Templates 核心插件配置的模板文件夹会自动排除。"
 			)
 			.addTextArea((ta) => {
-				ta.setPlaceholder("templates/**\n**/archive/**")
+				ta.setPlaceholder("Templates/**\n**/archive/**")
 					.setValue(this.plugin.settings.excludePatterns.join("\n"))
 					.onChange(async (v) => {
 						this.plugin.settings.excludePatterns = v
@@ -69,7 +67,7 @@ export class WritingHeatmapSettingTab extends PluginSettingTab {
 				"如果填写了，则只统计匹配这些模式的文件。留空表示不启用白名单。每行一个 glob。"
 			)
 			.addTextArea((ta) => {
-				ta.setPlaceholder("journal/**\nnotes/**")
+				ta.setPlaceholder("Journal/**\nnotes/**")
 					.setValue(this.plugin.settings.includePatterns.join("\n"))
 					.onChange(async (v) => {
 						this.plugin.settings.includePatterns = v

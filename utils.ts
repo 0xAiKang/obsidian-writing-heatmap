@@ -93,7 +93,7 @@ function globToRegex(pattern: string): RegExp {
  * Check if a file path matches any pattern in a list.
  * A pattern can be:
  *  - A plain folder path (e.g. "templates") → matches the folder and everything under it.
- *  - A glob containing `*` or `?` (e.g. "**​/archive/**") → regex-matched.
+ *  - A glob containing `*` or `?` (e.g. "archive/**") → regex-matched.
  *  - An exact file path (e.g. "archive/notes.md") → exact-matched.
  */
 export function matchesAny(filePath: string, patterns: string[]): boolean {
@@ -219,7 +219,7 @@ export function countWords(text: string, includeCodeBlocks: boolean): number {
 export async function openDailyNote(app: App, dateStr: string): Promise<void> {
 	const dailyNotes = (app as AppWithInternals).internalPlugins?.plugins?.["daily-notes"];
 	if (!dailyNotes?.enabled) {
-		new Notice("Daily Notes core plugin is not enabled");
+		new Notice("Daily notes core plugin is not enabled");
 		return;
 	}
 
@@ -230,7 +230,7 @@ export async function openDailyNote(app: App, dateStr: string): Promise<void> {
 	// Obsidian ships moment.js on window
 	const moment = (window as WindowWithMoment).moment;
 	if (!moment) {
-		new Notice("moment.js not available");
+		new Notice("Moment.js not available");
 		return;
 	}
 
