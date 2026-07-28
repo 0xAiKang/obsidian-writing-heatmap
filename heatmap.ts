@@ -2,34 +2,38 @@ import type WritingHeatmapPlugin from "./main";
 import { addDays, formatDate, openDailyNote, startOfDay } from "./utils";
 
 // ============================================================================
-// Constants
+// Geometry
 // ============================================================================
 
-const NUM_WEEKS = 25;
-const CELL_SIZE = 11;
+const CELL_SIZE = 10;
 const GUTTER = 3;
 const CELL_STEP = CELL_SIZE + GUTTER;
-const MONTH_LABEL_H = 16;
-const DAY_LABEL_W = 28;
+const MONTH_LABEL_H = 14;
+const DAY_LABEL_W = 20;
+
+/** Bounds on how much history to draw, in weeks. */
+const MIN_WEEKS = 8;
+const MAX_WEEKS = 53;
+const FALLBACK_WEEKS = 20;
 
 const MONTHS = [
-	"Jan",
-	"Feb",
-	"Mar",
-	"Apr",
-	"May",
-	"Jun",
-	"Jul",
-	"Aug",
-	"Sep",
-	"Oct",
-	"Nov",
-	"Dec",
+	"1月",
+	"2月",
+	"3月",
+	"4月",
+	"5月",
+	"6月",
+	"7月",
+	"8月",
+	"9月",
+	"10月",
+	"11月",
+	"12月",
 ];
 const DAY_LABELS: [number, string][] = [
-	[1, "Mon"],
-	[3, "Wed"],
-	[5, "Fri"],
+	[1, "一"],
+	[3, "三"],
+	[5, "五"],
 ];
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -38,7 +42,7 @@ const SVG_NS = "http://www.w3.org/2000/svg";
 // Colour-level scaling — quartile-based to adapt to any range of values
 // ============================================================================
 
-type DayDatum = { date: string; created: number; totalWords: number };
+export type DayDatum = { date: string; created: number; totalWords: number };
 
 function computeLevelFn(days: DayDatum[], key: "totalWords" | "created") {
 	const nonZero = days
@@ -71,41 +75,84 @@ function showTooltip(e: MouseEvent, day: DayDatum): void {
 	if (!tooltipEl) {
 		tooltipEl = document.body.createDiv("wh-tooltip");
 	}
-	tooltipEl.addClass("wh-tooltip--visible");
 	tooltipEl.empty();
-	tooltipEl.createEl("strong").appendText(day.date);
-	tooltipEl.appendText(` · 📝 ${day.created} 篇 · ✍️ ${day.totalWords.toLocaleString()} 字`);
+	tooltipEl.createDiv({ cls: "wh-tooltip-date", text: day.date });
+	const row = tooltipEl.createDiv({ cls: "wh-tooltip-row" });
+	row.createSpan({ text: `${day.created} 篇` });
+	row.createSpan({ cls: "wh-tooltip-sep", text: "·" });
+	row.createSpan({ text: `${day.totalWords.toLocaleString()} 字` });
+	tooltipEl.addClass("wh-tooltip--visible");
 	positionTooltip(e);
 }
 
 function positionTooltip(e: MouseEvent): void {
 	if (!tooltipEl) return;
-	tooltipEl.style.left = `${e.clientX + 12}px`;
-	tooltipEl.style.top = `${e.clientY - 32}px`;
+	const rect = tooltipEl.getBoundingClientRect();
+	// Flip to the left of the cursor when the tooltip would leave the window.
+	const left = Math.min(e.clientX + 12, window.innerWidth - rect.width - 8);
+	const top = Math.max(e.clientY - rect.height - 10, 8);
+	tooltipEl.style.left = `${Math.max(left, 8)}px`;
+	tooltipEl.style.top = `${top}px`;
 }
 
-function hideTooltip(): void {
+export function hideTooltip(): void {
 	if (tooltipEl) tooltipEl.removeClass("wh-tooltip--visible");
 }
 
+export function destroyTooltip(): void {
+	if (tooltipEl) {
+		tooltipEl.remove();
+		tooltipEl = null;
+	}
+}
+
+/**
+ * Drop tooltip nodes left on `document.body` by a previous load of the plugin.
+ * Versions before 2.0.0 never removed theirs on unload, so upgrading — or any
+ * developer reload — would otherwise leave dead nodes behind.
+ */
+export function removeStaleTooltips(): void {
+	for (const node of Array.from(document.querySelectorAll(".wh-tooltip"))) {
+		if (node !== tooltipEl) node.remove();
+	}
+}
+
 // ============================================================================
-// HeatmapRenderer — builds the SVG
+// HeatmapRenderer — builds the SVG grid
 // ============================================================================
 
 export class HeatmapRenderer {
 	constructor(private plugin: WritingHeatmapPlugin) {}
 
-	render(container: HTMLElement): void {
+	/**
+	 * How many weeks fit in `availableWidth` pixels. The sidebar is narrow and
+	 * resizable, so the grid is sized to the container rather than fixed.
+	 */
+	weeksForWidth(availableWidth: number): number {
+		const usable = availableWidth - DAY_LABEL_W;
+		if (!Number.isFinite(usable) || usable <= 0) return FALLBACK_WEEKS;
+		const fit = Math.floor(usable / CELL_STEP);
+		return Math.max(MIN_WEEKS, Math.min(MAX_WEEKS, fit));
+	}
+
+	/**
+	 * Draw the grid into `container`, sized to `availableWidth`.
+	 * Returns the totals for the drawn window so the caller can label it.
+	 */
+	render(
+		container: HTMLElement,
+		availableWidth: number
+	): { weeks: number; created: number; words: number } {
 		container.empty();
 
+		const numWeeks = this.weeksForWidth(availableWidth);
 		const today = startOfDay(new Date());
 		const todayStr = formatDate(today);
 
-		// Compute date range: ends on Saturday of the current week, starts NUM_WEEKS*7 days earlier
-		const endOffset = 6 - today.getDay(); // days until Saturday
-		const endDate = addDays(today, endOffset);
-		const startDate = addDays(endDate, -(NUM_WEEKS * 7) + 1);
-		// Snap startDate back to Sunday
+		// The grid ends on the Saturday of the current week so today's column
+		// is always the rightmost one, and starts on a Sunday numWeeks back.
+		const endDate = addDays(today, 6 - today.getDay());
+		const startDate = addDays(endDate, -(numWeeks * 7) + 1);
 		const startSunday = addDays(startDate, -startDate.getDay());
 
 		const days = this.plugin.tracker.getRange(startSunday, endDate);
@@ -115,16 +162,17 @@ export class HeatmapRenderer {
 			colorBy === "words" ? "totalWords" : "created"
 		);
 
-		const numWeeks = Math.ceil(days.length / 7);
-		const width = DAY_LABEL_W + numWeeks * CELL_STEP;
-		const height = MONTH_LABEL_H + 7 * CELL_STEP;
+		const drawnWeeks = Math.ceil(days.length / 7);
+		const width = DAY_LABEL_W + drawnWeeks * CELL_STEP - GUTTER;
+		const height = MONTH_LABEL_H + 7 * CELL_STEP - GUTTER;
 
 		const svg = document.createElementNS(SVG_NS, "svg");
 		svg.setAttribute("width", `${width}`);
 		svg.setAttribute("height", `${height}`);
+		svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
 		svg.classList.add("wh-heatmap");
 
-		// Day cells
+		// --- Day cells ---
 		const app = this.plugin.app;
 		for (let i = 0; i < days.length; i++) {
 			const day = days[i];
@@ -132,8 +180,7 @@ export class HeatmapRenderer {
 			const dow = i % 7;
 			const x = DAY_LABEL_W + week * CELL_STEP;
 			const y = MONTH_LABEL_H + dow * CELL_STEP;
-			const val =
-				colorBy === "words" ? day.totalWords : day.created;
+			const val = colorBy === "words" ? day.totalWords : day.created;
 			const level = levelFn(val);
 
 			const rect = document.createElementNS(SVG_NS, "rect");
@@ -141,25 +188,24 @@ export class HeatmapRenderer {
 			rect.setAttribute("y", `${y}`);
 			rect.setAttribute("width", `${CELL_SIZE}`);
 			rect.setAttribute("height", `${CELL_SIZE}`);
-			rect.setAttribute("rx", "2");
+			rect.setAttribute("rx", "3");
 			rect.classList.add("wh-cell", `wh-level-${level}`);
-			if (day.date === todayStr) rect.classList.add("wh-today");
+			if (day.date === todayStr) rect.classList.add("wh-cell-today");
 
-			rect.addEventListener("mouseenter", (e) =>
-				showTooltip(e, day)
-			);
-			rect.addEventListener("mousemove", (e) =>
-				positionTooltip(e)
-			);
+			rect.addEventListener("mouseenter", (e) => { showTooltip(e, day); });
+			rect.addEventListener("mousemove", (e) => { positionTooltip(e); });
 			rect.addEventListener("mouseleave", hideTooltip);
-			rect.addEventListener("click", () => { void openDailyNote(app, day.date); });
+			rect.addEventListener("click", () => {
+				hideTooltip();
+				void openDailyNote(app, day.date);
+			});
 
 			svg.appendChild(rect);
 		}
 
-		// Month labels
+		// --- Month labels ---
 		let prevMonth = -1;
-		for (let w = 0; w < numWeeks; w++) {
+		for (let w = 0; w < drawnWeeks; w++) {
 			const dayIndex = w * 7;
 			if (dayIndex >= days.length) break;
 			const d = new Date(days[dayIndex].date + "T00:00:00");
@@ -175,7 +221,7 @@ export class HeatmapRenderer {
 			}
 		}
 
-		// Day labels (Mon, Wed, Fri)
+		// --- Weekday labels ---
 		for (const [row, label] of DAY_LABELS) {
 			const text = document.createElementNS(SVG_NS, "text");
 			text.setAttribute("x", "0");
@@ -190,7 +236,6 @@ export class HeatmapRenderer {
 
 		container.appendChild(svg);
 
-		// Summary line
 		const totals = days.reduce(
 			(acc, d) => {
 				acc.created += d.created;
@@ -200,97 +245,20 @@ export class HeatmapRenderer {
 			{ created: 0, words: 0 }
 		);
 
-		const summary = container.createDiv("wh-summary");
-		summary.setText(
-			`过去 ${NUM_WEEKS} 周 · 新建 ${totals.created} 篇 · 写作 ${totals.words.toLocaleString()} 字`
-		);
+		return { weeks: drawnWeeks, created: totals.created, words: totals.words };
 	}
 }
 
 // ============================================================================
-// HeatmapPopover — floating panel near the ribbon icon
+// Legend — the "少 ▢▢▢▢▢ 多" strip under the grid
 // ============================================================================
 
-export class HeatmapPopover {
-	private el: HTMLElement | null = null;
-	private outsideHandler: ((e: MouseEvent) => void) | null = null;
-	private renderer: HeatmapRenderer;
-
-	constructor(
-		private plugin: WritingHeatmapPlugin,
-		private anchorEl: HTMLElement,
-		private onClose: () => void
-	) {
-		this.renderer = new HeatmapRenderer(plugin);
+export function renderLegend(container: HTMLElement): void {
+	container.empty();
+	container.createSpan({ cls: "wh-legend-label", text: "少" });
+	const swatches = container.createDiv({ cls: "wh-legend-swatches" });
+	for (let level = 0; level <= 4; level++) {
+		swatches.createDiv({ cls: `wh-legend-swatch wh-level-${level}` });
 	}
-
-	open(): void {
-		const el = document.body.createDiv("wh-popover");
-		this.el = el;
-
-		// Header
-		const header = el.createDiv("wh-popover-header");
-		header.createEl("span", {
-			text: "Writing heatmap",
-			cls: "wh-popover-title",
-		});
-		const closeBtn = header.createEl("span", {
-			text: "\u00D7",
-			cls: "wh-popover-close",
-		});
-		closeBtn.addEventListener("click", () => this.close());
-
-		// Content
-		const content = el.createDiv("wh-popover-content");
-		this.renderer.render(content);
-
-		// Position: right of ribbon icon, near the top
-		const iconRect = this.anchorEl.getBoundingClientRect();
-		el.style.left = `${iconRect.right + 10}px`;
-		el.style.top = `${iconRect.top}px`;
-
-		// Keep within viewport
-		requestAnimationFrame(() => {
-			if (!this.el) return;
-			const popRect = this.el.getBoundingClientRect();
-			if (popRect.right > window.innerWidth - 10) {
-				this.el.style.left = `${window.innerWidth - popRect.width - 10}px`;
-			}
-			if (popRect.bottom > window.innerHeight - 10) {
-				this.el.style.top = `${window.innerHeight - popRect.height - 10}px`;
-			}
-		});
-
-		// Close on outside click (deferred to avoid self-triggering)
-		const handler = (e: MouseEvent) => {
-			if (!el.contains(e.target as Node)) {
-				this.close();
-			}
-		};
-		window.setTimeout(() => document.addEventListener("click", handler), 0);
-		this.outsideHandler = handler;
-	}
-
-	update(): void {
-		if (!this.el) return;
-		const content = this.el.querySelector(".wh-popover-content") as HTMLElement;
-		if (content) this.renderer.render(content);
-	}
-
-	close(): void {
-		if (this.outsideHandler) {
-			document.removeEventListener("click", this.outsideHandler);
-			this.outsideHandler = null;
-		}
-		if (this.el) {
-			this.el.remove();
-			this.el = null;
-		}
-		hideTooltip();
-		this.onClose();
-	}
-
-	get isOpen(): boolean {
-		return this.el !== null;
-	}
+	container.createSpan({ cls: "wh-legend-label", text: "多" });
 }
