@@ -16,8 +16,14 @@ A GitHub-style heatmap plugin for [Obsidian](https://obsidian.md) that visualize
 - **Daily word count** — Track total character count of notes created each day (updates in real-time as you edit)
   **每日字数** — 统计每天创建的笔记的总字数（编辑后实时更新）
 
-- **GitHub-style heatmap** — 25 weeks (half a year) of activity at a glance, with adaptive color scaling
-  **GitHub 风格热力图** — 一览过去 25 周的写作活动，颜色深浅自适应
+- **Always-on sidebar panel** — Opens in the right sidebar on startup and stays there; the ribbon icon and the `打开写作热力图面板` command bring it back into focus
+  **常驻侧栏面板** — 启动时自动在右侧栏打开；ribbon 图标与命令面板可随时聚焦
+
+- **Headline numbers** — Note count, tag count and usage days across the top, flomo-style
+  **三大数字** — 顶部横排笔记数 / 标签数 / 使用天数
+
+- **GitHub-style heatmap** — Activity at a glance, with adaptive color scaling; the grid resizes itself to the sidebar width
+  **GitHub 风格热力图** — 一览写作活动，颜色深浅自适应；网格随侧栏宽度自动伸缩
 
 - **Status bar** — Always visible today's stats: `📝 3 · ✍️ 1,240`
   **状态栏** — 底部常驻显示今日数据
@@ -38,6 +44,7 @@ A GitHub-style heatmap plugin for [Obsidian](https://obsidian.md) that visualize
 
 | Setting | Description |
 |---------|-------------|
+| **Stats folders** | Folders counted by the panel's note number, one per line. Empty counts the whole vault. Tag count and usage days are always vault-wide |
 | **Exclude patterns** | Glob patterns for files/folders to exclude (e.g. `templates/**`, `**/archive/**`) |
 | **Include patterns** | Whitelist mode — if set, only matching files are tracked |
 | **Count code blocks** | Toggle whether code block characters count toward word count (default: off) |

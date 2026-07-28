@@ -1,9 +1,9 @@
 {
 	"id": "writing-heatmap",
 	"name": "Writing Heatmap",
-	"version": "1.0.0",
+	"version": "2.0.0",
 	"minAppVersion": "1.0.0",
-	"description": "GitHub-style heatmap for daily note creation and writing word count. Visualize your writing habit.",
+	"description": "Always-on sidebar panel: writing heatmap plus vault-wide note, tag and usage-day counters.",
 	"author": "0xAiKang",
 	"authorUrl": "https://github.com/0xAiKang",
 	"isDesktopOnly": false
