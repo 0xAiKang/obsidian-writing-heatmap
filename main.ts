@@ -104,6 +104,9 @@ export default class WritingHeatmapPlugin extends Plugin {
 
 		const existing = workspace.getLeavesOfType(VIEW_TYPE_WRITING_HEATMAP);
 		if (existing.length > 0) {
+			// Reloading the plugin (updates, or a developer reload) can leave
+			// the previous leaf behind, so drop any extras before reusing one.
+			for (let i = 1; i < existing.length; i++) existing[i].detach();
 			if (reveal) await workspace.revealLeaf(existing[0]);
 			return;
 		}
