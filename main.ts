@@ -17,7 +17,15 @@ import { formatDate } from "./utils";
 interface PluginData {
 	settings: WritingHeatmapSettings;
 	tracker: TrackerData;
+	/** Schema version of `tracker`. Bump to force a rebuild on upgrade. */
+	dataVersion?: number;
 }
+
+/**
+ * 2 — notes are bucketed by the date in their own name / frontmatter instead
+ * of by `ctime`, so every cached record from version 1 is on the wrong day.
+ */
+const DATA_VERSION = 2;
 
 // ============================================================================
 // Plugin
@@ -42,7 +50,9 @@ export default class WritingHeatmapPlugin extends Plugin {
 			void this.persistData();
 		});
 		this.tracker.onUpdate = () => this.refreshUI();
-		this.stats = new StatsProvider(this.app, this.settings);
+		this.stats = new StatsProvider(this.app, this.settings, () =>
+			this.tracker.getEarliestDate()
+		);
 
 		// --- The sidebar view is the only place the heatmap is drawn ---
 		this.registerView(
@@ -73,7 +83,13 @@ export default class WritingHeatmapPlugin extends Plugin {
 
 		// --- Initialise tracker + register events after layout is ready ---
 		this.app.workspace.onLayoutReady(async () => {
-			await this.tracker.initialize(raw?.tracker ?? null);
+			// A stale schema version means the cached day buckets were built by
+			// older, different rules; passing null forces a full rescan.
+			const cached =
+				raw?.dataVersion === DATA_VERSION ? raw?.tracker ?? null : null;
+			await this.tracker.initialize(cached);
+			// usageDays reads the tracker, which only just filled up.
+			this.stats.invalidate();
 			this.refreshStatusBar();
 
 			// Obsidian restores sidebar leaves from the saved workspace, so
@@ -244,6 +260,7 @@ export default class WritingHeatmapPlugin extends Plugin {
 		const data: PluginData = {
 			settings: this.settings,
 			tracker: this.tracker.serialize(),
+			dataVersion: DATA_VERSION,
 		};
 		await this.saveData(data);
 	}

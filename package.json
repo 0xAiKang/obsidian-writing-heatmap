@@ -1,11 +1,12 @@
 {
 	"name": "writing-heatmap",
-	"version": "2.0.0",
+	"version": "2.1.0",
 	"description": "GitHub-style writing activity heatmap for Obsidian",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
-		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production"
+		"test": "node tests/run.mjs",
+		"build": "tsc -noEmit -skipLibCheck && node tests/run.mjs && node esbuild.config.mjs production"
 	},
 	"keywords": [],
 	"author": "",

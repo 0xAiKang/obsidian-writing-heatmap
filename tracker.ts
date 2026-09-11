@@ -1,6 +1,7 @@
 import { App, TFile } from "obsidian";
 import type { WritingHeatmapSettings } from "./settings";
 import { countWords, FileMatcher, formatDate } from "./utils";
+import { resolveNoteDate } from "./note-date";
 
 // ============================================================================
 // Types
@@ -14,7 +15,7 @@ export interface DayStat {
 interface FileRecord {
 	words: number;
 	mtime: number;
-	date: string; // YYYY-MM-DD derived from ctime
+	date: string; // YYYY-MM-DD the note counts towards (see resolveNoteDate)
 }
 
 export interface TrackerData {
@@ -185,13 +186,17 @@ export class Tracker {
 			return;
 		}
 
-		// Normal rename within tracked area: just update the key
+		// Normal rename within tracked area. The name can carry the note's date,
+		// so re-read rather than just moving the key.
 		const rec = this.fileWords.get(oldPath);
 		if (rec) {
+			this.removeFromBucket(rec.date, 1, rec.words);
 			this.fileWords.delete(oldPath);
-			this.fileWords.set(file.path, rec);
-			this.schedulePersist();
 		}
+		void this.addFile(file).then(() => {
+			this.onUpdate();
+			this.schedulePersist();
+		});
 	}
 
 	// ----------------------------------------------------------------
@@ -200,6 +205,19 @@ export class Tracker {
 
 	getDay(date: string): DayStat {
 		return this.dayBucket.get(date) || { created: 0, totalWords: 0 };
+	}
+
+	/**
+	 * The earliest day any tracked note belongs to, or null when nothing is
+	 * tracked yet. Already resolved from note names and frontmatter, so it
+	 * survives the ctime rewrites that syncing a vault causes.
+	 */
+	getEarliestDate(): string | null {
+		let earliest: string | null = null;
+		for (const date of this.dayBucket.keys()) {
+			if (earliest === null || date < earliest) earliest = date;
+		}
+		return earliest;
 	}
 
 	getRange(
@@ -239,7 +257,7 @@ export class Tracker {
 	private async addFile(file: TFile): Promise<void> {
 		const content = await this.app.vault.cachedRead(file);
 		const words = countWords(content, this.settings.includeCodeBlocks);
-		const date = formatDate(new Date(file.stat.ctime));
+		const date = this.dateFor(file, content);
 
 		this.fileWords.set(file.path, {
 			words,
@@ -251,15 +269,35 @@ export class Tracker {
 
 	private async updateFile(file: TFile): Promise<void> {
 		const content = await this.app.vault.cachedRead(file);
-		const newWords = countWords(content, this.settings.includeCodeBlocks);
+		const words = countWords(content, this.settings.includeCodeBlocks);
 		const rec = this.fileWords.get(file.path);
+		if (!rec) return;
 
-		if (rec) {
-			const delta = newWords - rec.words;
-			rec.words = newWords;
-			rec.mtime = file.stat.mtime;
-			this.addToBucket(rec.date, 0, delta);
+		const date = this.dateFor(file, content);
+		if (date === rec.date) {
+			this.addToBucket(date, 0, words - rec.words);
+		} else {
+			// Editing the frontmatter date moves the note to another day.
+			this.removeFromBucket(rec.date, 1, rec.words);
+			this.addToBucket(date, 1, words);
+			rec.date = date;
 		}
+
+		rec.words = words;
+		rec.mtime = file.stat.mtime;
+	}
+
+	/**
+	 * Which day a note counts towards. The file name and frontmatter say when
+	 * it was written; `ctime` only says when this machine happened to receive
+	 * the file, which sync and vault moves rewrite wholesale.
+	 */
+	private dateFor(file: TFile, content: string): string {
+		return resolveNoteDate({
+			basename: file.basename,
+			content,
+			ctime: file.stat.ctime,
+		});
 	}
 
 	private addToBucket(

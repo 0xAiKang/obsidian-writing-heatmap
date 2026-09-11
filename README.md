@@ -31,8 +31,8 @@ A GitHub-style heatmap plugin for [Obsidian](https://obsidian.md) that visualize
 - **Tooltip** — Hover over any cell to see: date, notes created, words written
   **悬停提示** — 鼠标移到方格上即可查看详细数据
 
-- **Daily note navigation** — Click any cell to jump to that day's daily note
-  **日记跳转** — 点击方格直接打开对应日期的日记
+- **Daily note navigation** — Click any cell to jump to that day's daily note, wherever it is filed
+  **日记跳转** — 点击方格直接打开对应日期的日记，日记归档在哪个子目录都能找到
 
 - **Folder exclusion** — Glob patterns & whitelist mode to control which files are counted
   **文件夹排除** — 支持 glob 模式和白名单，灵活控制统计范围
@@ -50,6 +50,19 @@ A GitHub-style heatmap plugin for [Obsidian](https://obsidian.md) that visualize
 | **Count code blocks** | Toggle whether code block characters count toward word count (default: off) |
 | **Color by** | Color cells by word count (default) or note count |
 | **Rebuild index** | Force a full rescan if data seems incorrect |
+
+## Which day a note counts towards | 笔记归日规则
+
+A note is dated by the first of these that yields a real date:
+
+1. **Its file name** — a leading `YYYY-MM-DD`, e.g. `2026-05-01周五.md`
+2. **Its frontmatter** — the `created` key, then `date`; plain values
+   (`2026-05-01 11:25`) and daily-note links (`"[[2026-05-01周五]]"`) both work
+3. **The file's `ctime`** — only when the note carries no date of its own
+
+按以下顺序取第一个能解析出的真实日期：**文件名前缀** → **frontmatter 的 `created` / `date`（支持 `[[日期]]` 双链写法）** → **文件系统 ctime**。
+
+`ctime` 排在最后是因为它记录的是"这台机器什么时候收到这个文件"，而不是"你什么时候写的"。同步、迁移、恢复库都会重写它，把多年的笔记压到同一天。
 
 ## How word count works | 字数统计规则
 

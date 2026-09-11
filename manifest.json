@@ -1,7 +1,7 @@
 {
 	"id": "writing-heatmap",
 	"name": "Writing Heatmap",
-	"version": "2.0.0",
+	"version": "2.1.0",
 	"minAppVersion": "1.0.0",
 	"description": "Always-on sidebar panel: writing heatmap plus vault-wide note, tag and usage-day counters.",
 	"author": "0xAiKang",

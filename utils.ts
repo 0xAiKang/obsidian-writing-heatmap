@@ -1,5 +1,6 @@
 import { App, TFile, Notice, normalizePath } from "obsidian";
 import type { WritingHeatmapSettings } from "./settings";
+import { dateFromBasename, formatDate, pickClosestPath } from "./note-date";
 
 // Minimal types for Obsidian internal APIs not exposed in the public type definitions
 interface ObsidianInternalPlugin {
@@ -24,13 +25,7 @@ type WindowWithMoment = Window &
 // Date helpers
 // ============================================================================
 
-/** Format a Date as YYYY-MM-DD in local time. */
-export function formatDate(d: Date): string {
-	const y = d.getFullYear();
-	const m = String(d.getMonth() + 1).padStart(2, "0");
-	const day = String(d.getDate()).padStart(2, "0");
-	return `${y}-${m}-${day}`;
-}
+export { formatDate };
 
 /** Parse YYYY-MM-DD as a local Date at 00:00. */
 export function parseDate(s: string): Date {
@@ -213,36 +208,62 @@ export function countWords(text: string, includeCodeBlocks: boolean): number {
 // ============================================================================
 
 /**
- * Open the daily note for the given YYYY-MM-DD date.
- * Reads folder + filename format from the Daily Notes core plugin.
+ * Find the note for a YYYY-MM-DD date.
+ *
+ * The configured daily-notes folder is only a hint. Plenty of vaults file
+ * their diaries by year or by month and repoint the setting as time moves on,
+ * so looking only inside the current folder finds today and nothing else.
+ * Instead: try the configured location first, then search the whole vault by
+ * filename, preferring whichever match sits closest to the configured folder.
  */
-export async function openDailyNote(app: App, dateStr: string): Promise<void> {
+export function findDailyNote(app: App, dateStr: string): TFile | null {
 	const dailyNotes = (app as AppWithInternals).internalPlugins?.plugins?.["daily-notes"];
-	if (!dailyNotes?.enabled) {
-		new Notice("Daily notes core plugin is not enabled");
-		return;
-	}
-
-	const options = dailyNotes.instance?.options || {};
-	const folder: string = options.folder || "";
+	const options = dailyNotes?.instance?.options || {};
+	const folder = normalizePath(options.folder || "");
 	const format: string = options.format || "YYYY-MM-DD";
 
 	// Obsidian ships moment.js on window
 	const moment = (window as WindowWithMoment).moment;
-	if (!moment) {
-		new Notice("Moment.js not available");
-		return;
-	}
+	const filename = moment
+		? moment(dateStr, "YYYY-MM-DD").format(format)
+		: dateStr;
 
-	const m = moment(dateStr, "YYYY-MM-DD");
-	const filename = m.format(format);
-	const path = normalizePath(
+	// 1. Exactly where the setting says it should be.
+	const configured = normalizePath(
 		folder ? `${folder}/${filename}.md` : `${filename}.md`
 	);
+	const direct = app.vault.getAbstractFileByPath(configured);
+	if (direct instanceof TFile) return direct;
 
-	const existing = app.vault.getAbstractFileByPath(path);
-	if (existing instanceof TFile) {
-		await app.workspace.getLeaf(false).openFile(existing);
+	const files = app.vault.getMarkdownFiles();
+
+	// 2. Same file name, anywhere in the vault.
+	const byName = files.filter((f) => f.basename === filename);
+	const bestNamed = pickClosestPath(
+		byName.map((f) => f.path),
+		folder
+	);
+	if (bestNamed) return byName.find((f) => f.path === bestNamed) ?? null;
+
+	// 3. Same date, different name — the `ddd` in a format like "YYYY-MM-DDddd"
+	//    renders through moment's locale, so a language change makes step 2
+	//    miss files written under the old locale.
+	if (!filename.startsWith(dateStr)) return null;
+	const byDate = files.filter((f) => dateFromBasename(f.basename) === dateStr);
+	const bestDated = pickClosestPath(
+		byDate.map((f) => f.path),
+		folder
+	);
+	if (bestDated) return byDate.find((f) => f.path === bestDated) ?? null;
+
+	return null;
+}
+
+/** Open the daily note for the given YYYY-MM-DD date, if one exists. */
+export async function openDailyNote(app: App, dateStr: string): Promise<void> {
+	const file = findDailyNote(app, dateStr);
+	if (file) {
+		await app.workspace.getLeaf(false).openFile(file);
 	} else {
 		new Notice(`该日没有日记：${dateStr}`);
 	}

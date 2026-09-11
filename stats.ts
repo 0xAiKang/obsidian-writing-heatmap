@@ -1,6 +1,6 @@
 import { App, getAllTags } from "obsidian";
 import type { WritingHeatmapSettings } from "./settings";
-import { formatDate } from "./utils";
+import { formatDate, parseDate } from "./utils";
 
 // ============================================================================
 // Types
@@ -12,7 +12,7 @@ export interface VaultStats {
 	/** Number of distinct tags across the whole vault (case-insensitive). */
 	tagCount: number;
 	/**
-	 * Days elapsed since the earliest note was created, inclusive of both ends.
+	 * Days elapsed since the earliest note is dated, inclusive of both ends.
 	 * Mirrors flomo's "使用天数" (days since you started), not the number of
 	 * days on which you happened to write.
 	 */
@@ -49,7 +49,12 @@ export class StatsProvider {
 
 	constructor(
 		private app: App,
-		private settings: WritingHeatmapSettings
+		private settings: WritingHeatmapSettings,
+		/**
+		 * The tracker's earliest resolved note date. Supplied as a getter to
+		 * keep this module free of a dependency on the tracker itself.
+		 */
+		private earliestTrackedDate: () => string | null = () => null
 	) {}
 
 	invalidate(): void {
@@ -93,10 +98,16 @@ export class StatsProvider {
 			for (const tag of fileTags) tags.add(tag.toLowerCase());
 		}
 
+		// The tracker has already worked out each note's real date from its
+		// name and frontmatter; ctime is only a fallback for vaults where it
+		// has nothing to go on.
+		const tracked = this.earliestTrackedDate();
+		const earliestMs = tracked ? parseDate(tracked).getTime() : earliest;
+
 		let usageDays = 0;
 		let firstDate: string | null = null;
-		if (Number.isFinite(earliest)) {
-			const first = new Date(earliest);
+		if (Number.isFinite(earliestMs)) {
+			const first = new Date(earliestMs);
 			first.setHours(0, 0, 0, 0);
 			const today = new Date();
 			today.setHours(0, 0, 0, 0);
