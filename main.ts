@@ -1,4 +1,10 @@
-import { Plugin, TFile, WorkspaceLeaf, debounce } from "obsidian";
+import {
+	Plugin,
+	TFile,
+	WorkspaceLeaf,
+	WorkspaceSidedock,
+	debounce,
+} from "obsidian";
 import {
 	DEFAULT_SETTINGS,
 	WritingHeatmapSettings,
@@ -9,6 +15,7 @@ import { StatsProvider } from "./stats";
 import { destroyTooltip, removeStaleTooltips } from "./heatmap";
 import { VIEW_TYPE_WRITING_HEATMAP, WritingHeatmapView } from "./view";
 import { formatDate } from "./utils";
+import { t } from "./i18n";
 
 // ============================================================================
 // Persisted data shape (settings + tracker state in one data.json)
@@ -19,6 +26,12 @@ interface PluginData {
 	tracker: TrackerData;
 	/** Schema version of `tracker`. Bump to force a rebuild on upgrade. */
 	dataVersion?: number;
+	/**
+	 * Set once the panel has been put in the sidebar for the first time.
+	 * After that the saved workspace owns it, and the plugin never creates
+	 * another one behind the user's back.
+	 */
+	panelCreated?: boolean;
 }
 
 /**
@@ -37,6 +50,8 @@ export default class WritingHeatmapPlugin extends Plugin {
 	stats!: StatsProvider;
 
 	private statusBarEl!: HTMLElement;
+	private panelCreated = false;
+	private firstRunTimer: number | null = null;
 
 	async onload(): Promise<void> {
 		removeStaleTooltips();
@@ -44,6 +59,7 @@ export default class WritingHeatmapPlugin extends Plugin {
 		// --- Load persisted data ---
 		const raw: PluginData | null = await this.loadData();
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, raw?.settings);
+		this.panelCreated = raw?.panelCreated ?? false;
 
 		// --- Aggregation engines ---
 		this.tracker = new Tracker(this.app, this.settings, () => {
@@ -61,22 +77,23 @@ export default class WritingHeatmapPlugin extends Plugin {
 		);
 
 		// --- Secondary entry points ---
-		this.addRibbonIcon("bar-chart-2", "写作热力图", () => {
-			void this.activateView();
+		this.addRibbonIcon("bar-chart-2", t().panelTitle, () => {
+			void this.togglePanel();
 		});
 
 		this.addCommand({
-			id: "open-writing-heatmap",
-			name: "打开写作热力图面板",
+			id: "toggle-panel",
+			name: t().togglePanel,
 			callback: () => {
-				void this.activateView();
+				void this.togglePanel();
 			},
 		});
 
 		this.statusBarEl = this.addStatusBarItem();
 		this.statusBarEl.addClass("wh-statusbar");
-		this.statusBarEl.addEventListener("click", () => {
-			void this.activateView();
+		this.statusBarEl.setAttr("aria-label", t().panelTitle);
+		this.registerDomEvent(this.statusBarEl, "click", () => {
+			void this.togglePanel();
 		});
 
 		this.addSettingTab(new WritingHeatmapSettingTab(this.app, this));
@@ -92,18 +109,20 @@ export default class WritingHeatmapPlugin extends Plugin {
 			this.stats.invalidate();
 			this.refreshStatusBar();
 
-			// Obsidian restores sidebar leaves from the saved workspace, so
-			// this only fires on first run (or after the user closes the view).
-			await this.activateView({ reveal: false });
 			this.refreshView();
+			this.openPanelOnFirstRun();
 
 			this.registerVaultEvents();
 		});
 	}
 
 	onunload(): void {
+		if (this.firstRunTimer != null) {
+			window.clearTimeout(this.firstRunTimer);
+			this.firstRunTimer = null;
+		}
 		destroyTooltip();
-		this.tracker.flush();
+		this.tracker.dispose();
 	}
 
 	// ----------------------------------------------------------------
@@ -111,19 +130,16 @@ export default class WritingHeatmapPlugin extends Plugin {
 	// ----------------------------------------------------------------
 
 	/**
-	 * Make sure exactly one heatmap view exists in the right sidebar.
-	 * Existing views are reused; `reveal` brings it to the front.
+	 * Put the panel in the right sidebar, reusing one that is already there.
+	 * `reveal` brings it to the front of its tab group.
 	 */
 	async activateView(opts: { reveal?: boolean } = {}): Promise<void> {
 		const reveal = opts.reveal ?? true;
 		const { workspace } = this.app;
 
-		const existing = workspace.getLeavesOfType(VIEW_TYPE_WRITING_HEATMAP);
-		if (existing.length > 0) {
-			// Reloading the plugin (updates, or a developer reload) can leave
-			// the previous leaf behind, so drop any extras before reusing one.
-			for (let i = 1; i < existing.length; i++) existing[i].detach();
-			if (reveal) await workspace.revealLeaf(existing[0]);
+		const existing = this.getLeaf();
+		if (existing) {
+			if (reveal) await workspace.revealLeaf(existing);
 			return;
 		}
 
@@ -135,6 +151,67 @@ export default class WritingHeatmapPlugin extends Plugin {
 			active: false,
 		});
 		if (reveal) await workspace.revealLeaf(leaf);
+	}
+
+	/**
+	 * Open the panel once, on the very first load, and never again.
+	 *
+	 * Obsidian restores sidebar leaves from the saved workspace, but it does
+	 * so a beat after `onLayoutReady` fires — which is why opening the panel
+	 * on every load used to leave a second copy behind on each plugin reload.
+	 * A persisted flag makes this a genuine one-off, so an upgrade cannot
+	 * duplicate the panel and closing it stays closed.
+	 */
+	private openPanelOnFirstRun(): void {
+		if (this.panelCreated) return;
+
+		this.firstRunTimer = window.setTimeout(() => {
+			this.firstRunTimer = null;
+			this.panelCreated = true;
+			if (!this.getLeaf()) void this.activateView({ reveal: false });
+			void this.persistData();
+		}, 1000);
+	}
+
+	/**
+	 * Ribbon / command / status bar entry point.
+	 *
+	 * Revealing an already-visible panel is a no-op, which reads as a dead
+	 * button, so a click on a panel that is already in front collapses the
+	 * sidebar it lives in instead. Every other state — collapsed sidebar,
+	 * another tab in front, no panel at all — brings it back.
+	 *
+	 * `isShown()` answers "is this leaf the one on screen", which covers both
+	 * a collapsed dock and a sibling tab in front, but it reads layout. The
+	 * `collapsed` check in front of it is the cheap, synchronous half.
+	 */
+	async togglePanel(): Promise<void> {
+		const { workspace } = this.app;
+		const leaf = this.getLeaf();
+		if (!leaf) {
+			await this.activateView();
+			return;
+		}
+
+		const root = leaf.getRoot();
+		const dock =
+			root === workspace.rightSplit || root === workspace.leftSplit
+				? (root as WorkspaceSidedock)
+				: null;
+
+		if (dock && !dock.collapsed && leaf.view.containerEl.isShown()) {
+			dock.collapse();
+			return;
+		}
+
+		await workspace.revealLeaf(leaf);
+	}
+
+	private getLeaf(): WorkspaceLeaf | null {
+		return (
+			this.app.workspace.getLeavesOfType(VIEW_TYPE_WRITING_HEATMAP)[0] ??
+			null
+		);
 	}
 
 	private getView(): WritingHeatmapView | null {
@@ -261,6 +338,7 @@ export default class WritingHeatmapPlugin extends Plugin {
 			settings: this.settings,
 			tracker: this.tracker.serialize(),
 			dataVersion: DATA_VERSION,
+			panelCreated: this.panelCreated,
 		};
 		await this.saveData(data);
 	}

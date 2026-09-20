@@ -254,7 +254,15 @@ export class Tracker {
 	// Internal helpers
 	// ----------------------------------------------------------------
 
+	/**
+	 * Read a file and file it under its day. Safe to call on a path already
+	 * tracked: the previous contribution is backed out first, so a duplicated
+	 * `create` event cannot count the same note twice.
+	 */
 	private async addFile(file: TFile): Promise<void> {
+		const previous = this.fileWords.get(file.path);
+		if (previous) this.removeFromBucket(previous.date, 1, previous.words);
+
 		const content = await this.app.vault.cachedRead(file);
 		const words = countWords(content, this.settings.includeCodeBlocks);
 		const date = this.dateFor(file, content);
@@ -335,8 +343,19 @@ export class Tracker {
 		}, 1000);
 	}
 
-	/** Force a persist right now (used on unload). */
-	flush(): void {
+	/**
+	 * Cancel everything still in flight and write the current state out.
+	 *
+	 * The per-file modify timers hold a reference to this tracker; left
+	 * running they would fire after the plugin unloads and write to a vault
+	 * the plugin no longer watches.
+	 */
+	dispose(): void {
+		for (const timer of this.modifyTimers.values()) {
+			window.clearTimeout(timer);
+		}
+		this.modifyTimers.clear();
+
 		if (this.persistTimer != null) {
 			window.clearTimeout(this.persistTimer);
 			this.persistTimer = null;
