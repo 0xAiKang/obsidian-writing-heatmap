@@ -1,6 +1,6 @@
 {
 	"name": "writing-heatmap",
-	"version": "2.1.0",
+	"version": "2.2.0",
 	"description": "GitHub-style writing activity heatmap for Obsidian",
 	"main": "main.js",
 	"scripts": {
@@ -8,8 +8,14 @@
 		"test": "node tests/run.mjs",
 		"build": "tsc -noEmit -skipLibCheck && node tests/run.mjs && node esbuild.config.mjs production"
 	},
-	"keywords": [],
-	"author": "",
+	"keywords": [
+		"obsidian",
+		"obsidian-plugin",
+		"heatmap",
+		"writing",
+		"statistics"
+	],
+	"author": "0xAiKang",
 	"license": "MIT",
 	"devDependencies": {
 		"@types/node": "^16.11.6",
