@@ -2,17 +2,12 @@ import { ItemView, WorkspaceLeaf, debounce } from "obsidian";
 import type WritingHeatmapPlugin from "./main";
 import { HeatmapRenderer, hideTooltip, renderLegend } from "./heatmap";
 import { formatDate } from "./utils";
+import { t } from "./i18n";
 
 export const VIEW_TYPE_WRITING_HEATMAP = "writing-heatmap-view";
 
 /** Horizontal padding inside the panel, subtracted before sizing the grid. */
 const PANEL_PADDING = 24;
-
-/** Word counts run into the millions here; 万 keeps the footnote one line. */
-function compactCount(n: number): string {
-	if (n < 10000) return n.toLocaleString();
-	return `${(n / 10000).toFixed(1)}万`;
-}
 
 // ============================================================================
 // WritingHeatmapView — the always-on sidebar panel
@@ -40,7 +35,7 @@ export class WritingHeatmapView extends ItemView {
 	}
 
 	getDisplayText(): string {
-		return "写作热力图";
+		return t().panelTitle;
 	}
 
 	getIcon(): string {
@@ -80,7 +75,7 @@ export class WritingHeatmapView extends ItemView {
 
 		const card = panel.createDiv("wh-card");
 		const head = card.createDiv("wh-card-head");
-		head.createSpan({ cls: "wh-card-title", text: "写作热力图" });
+		head.createSpan({ cls: "wh-card-title", text: t().panelTitle });
 		head.createSpan({ cls: "wh-card-meta" });
 		this.gridEl = card.createDiv("wh-grid");
 
@@ -114,22 +109,15 @@ export class WritingHeatmapView extends ItemView {
 		const stats = this.plugin.stats.get();
 		this.statsEl.empty();
 
-		this.addStat(
-			stats.noteCount,
-			"笔记",
-			this.noteCountTooltip()
-		);
-		this.addStat(
-			stats.tagCount,
-			"标签",
-			"全库去重后的标签总数（含嵌套标签的完整路径，忽略大小写差异）"
-		);
+		const s = t();
+		this.addStat(stats.noteCount, s.statNotes, this.noteCountTooltip());
+		this.addStat(stats.tagCount, s.statTags, s.tipTags);
 		this.addStat(
 			stats.usageDays,
-			"天",
+			s.statDays,
 			stats.firstDate
-				? `自 ${stats.firstDate} 建立第一篇笔记算起，共 ${stats.usageDays} 天`
-				: "库中还没有笔记"
+				? s.tipDays(stats.firstDate, stats.usageDays)
+				: s.tipDaysEmpty
 		);
 	}
 
@@ -145,8 +133,8 @@ export class WritingHeatmapView extends ItemView {
 
 	private noteCountTooltip(): string {
 		const folders = this.plugin.settings.statsFolders;
-		if (folders.length === 0) return "全库 Markdown 笔记总数";
-		return "统计目录：\n" + folders.join("\n");
+		if (folders.length === 0) return t().tipNotesVault;
+		return t().tipNotesFolders(folders);
 	}
 
 	/** Repaint only if the container width now fits a different column count. */
@@ -170,21 +158,22 @@ export class WritingHeatmapView extends ItemView {
 
 		const totals = this.renderer.render(this.gridEl, available);
 
+		const s = t();
 		const meta = this.contentEl.querySelector(".wh-card-meta");
 		if (meta instanceof HTMLElement) {
 			meta.setText(
-				this.plugin.settings.colorBy === "words" ? "按字数" : "按篇数"
+				this.plugin.settings.colorBy === "words"
+					? s.colorByWords
+					: s.colorByNotes
 			);
 		}
 
 		this.footnoteEl.setText(
-			`${totals.weeks} 周 · ${totals.created.toLocaleString()} 篇 · ` +
-				`${compactCount(totals.words)} 字`
+			s.footnote(totals.weeks, totals.created, totals.words)
 		);
 		this.footnoteEl.setAttr(
 			"aria-label",
-			`最近 ${totals.weeks} 周共新建 ${totals.created.toLocaleString()} 篇笔记，` +
-				`写下 ${totals.words.toLocaleString()} 字`
+			s.footnoteAria(totals.weeks, totals.created, totals.words)
 		);
 	}
 
@@ -192,17 +181,18 @@ export class WritingHeatmapView extends ItemView {
 		const day = this.plugin.tracker.getDay(formatDate(new Date()));
 		this.todayEl.empty();
 
-		this.todayEl.createSpan({ cls: "wh-today-label", text: "今天" });
+		const s = t();
+		this.todayEl.createSpan({ cls: "wh-today-label", text: s.today });
 		this.todayEl.createSpan({
 			cls: "wh-today-num",
 			text: day.created.toLocaleString(),
 		});
-		this.todayEl.createSpan({ cls: "wh-today-label", text: "篇" });
+		this.todayEl.createSpan({ cls: "wh-today-label", text: s.unitNotes });
 		this.todayEl.createSpan({ cls: "wh-today-sep", text: "·" });
 		this.todayEl.createSpan({
 			cls: "wh-today-num",
 			text: day.totalWords.toLocaleString(),
 		});
-		this.todayEl.createSpan({ cls: "wh-today-label", text: "字" });
+		this.todayEl.createSpan({ cls: "wh-today-label", text: s.unitWords });
 	}
 }

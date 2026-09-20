@@ -1,6 +1,7 @@
 import { App, TFile, Notice, normalizePath } from "obsidian";
 import type { WritingHeatmapSettings } from "./settings";
 import { dateFromBasename, formatDate, pickClosestPath } from "./note-date";
+import { t } from "./i18n";
 
 // Minimal types for Obsidian internal APIs not exposed in the public type definitions
 interface ObsidianInternalPlugin {
@@ -265,6 +266,6 @@ export async function openDailyNote(app: App, dateStr: string): Promise<void> {
 	if (file) {
 		await app.workspace.getLeaf(false).openFile(file);
 	} else {
-		new Notice(`该日没有日记：${dateStr}`);
+		new Notice(t().noDailyNote(dateStr));
 	}
 }

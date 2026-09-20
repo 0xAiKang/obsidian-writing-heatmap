@@ -1,5 +1,6 @@
 import type WritingHeatmapPlugin from "./main";
 import { addDays, formatDate, openDailyNote, startOfDay } from "./utils";
+import { t } from "./i18n";
 
 // ============================================================================
 // Geometry
@@ -15,26 +16,6 @@ const DAY_LABEL_W = 20;
 const MIN_WEEKS = 8;
 const MAX_WEEKS = 53;
 const FALLBACK_WEEKS = 20;
-
-const MONTHS = [
-	"1月",
-	"2月",
-	"3月",
-	"4月",
-	"5月",
-	"6月",
-	"7月",
-	"8月",
-	"9月",
-	"10月",
-	"11月",
-	"12月",
-];
-const DAY_LABELS: [number, string][] = [
-	[1, "一"],
-	[3, "三"],
-	[5, "五"],
-];
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -78,9 +59,11 @@ function showTooltip(e: MouseEvent, day: DayDatum): void {
 	tooltipEl.empty();
 	tooltipEl.createDiv({ cls: "wh-tooltip-date", text: day.date });
 	const row = tooltipEl.createDiv({ cls: "wh-tooltip-row" });
-	row.createSpan({ text: `${day.created} 篇` });
+	row.createSpan({ text: `${day.created} ${t().unitNotes}` });
 	row.createSpan({ cls: "wh-tooltip-sep", text: "·" });
-	row.createSpan({ text: `${day.totalWords.toLocaleString()} 字` });
+	row.createSpan({
+		text: `${day.totalWords.toLocaleString()} ${t().unitWords}`,
+	});
 	tooltipEl.addClass("wh-tooltip--visible");
 	positionTooltip(e);
 }
@@ -215,14 +198,14 @@ export class HeatmapRenderer {
 				text.setAttribute("x", `${DAY_LABEL_W + w * CELL_STEP}`);
 				text.setAttribute("y", `${MONTH_LABEL_H - 5}`);
 				text.classList.add("wh-month-label");
-				text.textContent = MONTHS[m];
+				text.textContent = t().months[m];
 				svg.appendChild(text);
 				prevMonth = m;
 			}
 		}
 
 		// --- Weekday labels ---
-		for (const [row, label] of DAY_LABELS) {
+		for (const [row, label] of t().weekdays) {
 			const text = document.createElementNS(SVG_NS, "text");
 			text.setAttribute("x", "0");
 			text.setAttribute(
@@ -255,10 +238,10 @@ export class HeatmapRenderer {
 
 export function renderLegend(container: HTMLElement): void {
 	container.empty();
-	container.createSpan({ cls: "wh-legend-label", text: "少" });
+	container.createSpan({ cls: "wh-legend-label", text: t().legendLess });
 	const swatches = container.createDiv({ cls: "wh-legend-swatches" });
 	for (let level = 0; level <= 4; level++) {
 		swatches.createDiv({ cls: `wh-legend-swatch wh-level-${level}` });
 	}
-	container.createSpan({ cls: "wh-legend-label", text: "多" });
+	container.createSpan({ cls: "wh-legend-label", text: t().legendMore });
 }

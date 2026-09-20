@@ -1,5 +1,6 @@
 import { App, PluginSettingTab, Setting, debounce } from "obsidian";
 import type WritingHeatmapPlugin from "./main";
+import { t } from "./i18n";
 
 // ============================================================================
 // Settings interface & defaults
@@ -15,26 +16,19 @@ export interface WritingHeatmapSettings {
 	/** Heatmap cell colouring dimension. */
 	colorBy: "words" | "notes";
 	/**
-	 * Folders counted by the panel's "笔记" number. Empty means the whole vault.
-	 * Independent of excludePatterns, which only govern the heatmap.
+	 * Folders counted by the panel's note number. Empty — the default — means
+	 * the whole vault. Independent of excludePatterns, which only govern the
+	 * heatmap.
 	 */
 	statsFolders: string[];
 }
-
-/** Aikang's four writing pillars — the folders that hold actual notes. */
-export const DEFAULT_STATS_FOLDERS = [
-	"00 INDEX·收件箱",
-	"01 RIVER·河流",
-	"03 GEMS·晶石",
-	"04 MOUNTAINS·山脉",
-];
 
 export const DEFAULT_SETTINGS: WritingHeatmapSettings = {
 	excludePatterns: [],
 	includePatterns: [],
 	includeCodeBlocks: false,
 	colorBy: "words",
-	statsFolders: [...DEFAULT_STATS_FOLDERS],
+	statsFolders: [],
 };
 
 // ============================================================================
@@ -69,46 +63,28 @@ export class WritingHeatmapSettingTab extends PluginSettingTab {
 
 	display(): void {
 		const { containerEl } = this;
+		const s = t();
 		containerEl.empty();
 
-		// --- Stats folders (panel header) ---
+		// --- Folders behind the panel's note count ---
 		new Setting(containerEl)
-			.setName("Stats folders")
-			.setDesc(
-				"侧栏面板顶部「笔记」数字只统计这些目录。每行一个目录路径，留空表示统计全库。" +
-					"标签数与使用天数始终按全库计算。"
-			)
+			.setName(s.setStatsFolders)
+			.setDesc(s.setStatsFoldersDesc)
 			.addTextArea((ta) => {
-				ta.setPlaceholder(DEFAULT_STATS_FOLDERS.join("\n"))
+				ta.setPlaceholder("Journal\nNotes")
 					.setValue(this.plugin.settings.statsFolders.join("\n"))
 					.onChange(async (v) => {
 						this.plugin.settings.statsFolders = splitLines(v);
 						await this.plugin.saveSettings({ rebuild: false });
 					});
-				ta.inputEl.rows = 5;
+				ta.inputEl.rows = 4;
 				ta.inputEl.cols = 40;
-			})
-			.addExtraButton((b) =>
-				b
-					.setIcon("rotate-ccw")
-					.setTooltip("恢复默认四个目录")
-					.onClick(() => {
-						this.plugin.settings.statsFolders = [
-							...DEFAULT_STATS_FOLDERS,
-						];
-						void this.plugin
-							.saveSettings({ rebuild: false })
-							.then(() => { this.display(); });
-					})
-			);
+			});
 
 		// --- Exclude patterns ---
 		new Setting(containerEl)
-			.setName("Exclude patterns")
-			.setDesc(
-				"不参与统计的文件 / 文件夹。每行一个，支持 glob（如 templates/**、**/archive/**）。" +
-					"Templates 核心插件配置的模板文件夹会自动排除。"
-			)
+			.setName(s.setExclude)
+			.setDesc(s.setExcludeDesc)
 			.addTextArea((ta) => {
 				ta.setPlaceholder("Templates/**\n**/archive/**")
 					.setValue(this.plugin.settings.excludePatterns.join("\n"))
@@ -116,35 +92,31 @@ export class WritingHeatmapSettingTab extends PluginSettingTab {
 						this.plugin.settings.excludePatterns = splitLines(v);
 						this.saveWithRebuild();
 					});
-				ta.inputEl.rows = 5;
+				ta.inputEl.rows = 4;
 				ta.inputEl.cols = 40;
 			});
 
 		// --- Include patterns (whitelist) ---
 		new Setting(containerEl)
-			.setName("Include patterns")
-			.setDesc(
-				"如果填写了，则只统计匹配这些模式的文件。留空表示不启用白名单。每行一个 glob。"
-			)
+			.setName(s.setInclude)
+			.setDesc(s.setIncludeDesc)
 			.addTextArea((ta) => {
-				ta.setPlaceholder("Journal/**\nnotes/**")
+				ta.setPlaceholder("Journal/**\nNotes/**")
 					.setValue(this.plugin.settings.includePatterns.join("\n"))
 					.onChange((v) => {
 						this.plugin.settings.includePatterns = splitLines(v);
 						this.saveWithRebuild();
 					});
-				ta.inputEl.rows = 5;
+				ta.inputEl.rows = 4;
 				ta.inputEl.cols = 40;
 			});
 
 		// --- Code blocks toggle ---
 		new Setting(containerEl)
-			.setName("Count code blocks")
-			.setDesc(
-				"是否把代码块（```…```）和行内代码（`code`）里的内容计入字数统计。"
-			)
-			.addToggle((t) =>
-				t
+			.setName(s.setCodeBlocks)
+			.setDesc(s.setCodeBlocksDesc)
+			.addToggle((toggle) =>
+				toggle
 					.setValue(this.plugin.settings.includeCodeBlocks)
 					.onChange(async (v) => {
 						this.plugin.settings.includeCodeBlocks = v;
@@ -154,12 +126,12 @@ export class WritingHeatmapSettingTab extends PluginSettingTab {
 
 		// --- Color by ---
 		new Setting(containerEl)
-			.setName("Color by")
-			.setDesc("方格颜色深浅反映每日笔记数还是字数。")
-			.addDropdown((d) =>
-				d
-					.addOption("words", "字数 (words)")
-					.addOption("notes", "笔记数 (notes)")
+			.setName(s.setColorBy)
+			.setDesc(s.setColorByDesc)
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOption("words", s.colorByWords)
+					.addOption("notes", s.colorByNotes)
 					.setValue(this.plugin.settings.colorBy)
 					.onChange(async (v) => {
 						this.plugin.settings.colorBy = v as "words" | "notes";
@@ -169,20 +141,20 @@ export class WritingHeatmapSettingTab extends PluginSettingTab {
 
 		// --- Rebuild button ---
 		new Setting(containerEl)
-			.setName("Rebuild index")
-			.setDesc(
-				"如果数据不准确，点击此按钮强制重新扫描所有文件。"
-			)
-			.addButton((b) =>
-				b
-					.setButtonText("Rebuild")
+			.setName(s.setRebuild)
+			.setDesc(s.setRebuildDesc)
+			.addButton((button) =>
+				button
+					.setButtonText(s.btnRebuild)
 					.setCta()
 					.onClick(() => {
-						b.setButtonText("Rebuilding…").setDisabled(true);
+						button.setButtonText(s.btnRebuilding).setDisabled(true);
 						void this.plugin.tracker.rebuild().then(() => {
 							this.plugin.refreshUI();
-							b.setButtonText("Done!").setDisabled(false);
-							window.setTimeout(() => { b.setButtonText("Rebuild"); }, 2000);
+							button.setButtonText(s.btnRebuilt).setDisabled(false);
+							window.setTimeout(() => {
+								button.setButtonText(s.btnRebuild);
+							}, 2000);
 						});
 					})
 			);
