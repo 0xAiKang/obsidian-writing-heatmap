@@ -53,8 +53,14 @@ function computeLevelFn(days: DayDatum[], key: "totalWords" | "created") {
 let tooltipEl: HTMLElement | null = null;
 
 function showTooltip(e: MouseEvent, day: DayDatum): void {
+	// A popout window has its own document; a tooltip built in the main one
+	// would never show up there.
+	if (tooltipEl && tooltipEl.doc !== activeDocument) {
+		tooltipEl.remove();
+		tooltipEl = null;
+	}
 	if (!tooltipEl) {
-		tooltipEl = document.body.createDiv("wh-tooltip");
+		tooltipEl = activeDocument.body.createDiv("wh-tooltip");
 	}
 	tooltipEl.empty();
 	tooltipEl.createDiv({ cls: "wh-tooltip-date", text: day.date });
@@ -72,10 +78,15 @@ function positionTooltip(e: MouseEvent): void {
 	if (!tooltipEl) return;
 	const rect = tooltipEl.getBoundingClientRect();
 	// Flip to the left of the cursor when the tooltip would leave the window.
-	const left = Math.min(e.clientX + 12, window.innerWidth - rect.width - 8);
+	const left = Math.min(
+		e.clientX + 12,
+		tooltipEl.win.innerWidth - rect.width - 8
+	);
 	const top = Math.max(e.clientY - rect.height - 10, 8);
-	tooltipEl.style.left = `${Math.max(left, 8)}px`;
-	tooltipEl.style.top = `${top}px`;
+	tooltipEl.setCssProps({
+		left: `${Math.max(left, 8)}px`,
+		top: `${top}px`,
+	});
 }
 
 export function hideTooltip(): void {
@@ -90,12 +101,14 @@ export function destroyTooltip(): void {
 }
 
 /**
- * Drop tooltip nodes left on `document.body` by a previous load of the plugin.
+ * Drop tooltip nodes left on the body by a previous load of the plugin.
  * Versions before 2.0.0 never removed theirs on unload, so upgrading — or any
  * developer reload — would otherwise leave dead nodes behind.
  */
 export function removeStaleTooltips(): void {
-	for (const node of Array.from(document.querySelectorAll(".wh-tooltip"))) {
+	for (const node of Array.from(
+		activeDocument.querySelectorAll(".wh-tooltip")
+	)) {
 		if (node !== tooltipEl) node.remove();
 	}
 }
@@ -149,7 +162,8 @@ export class HeatmapRenderer {
 		const width = DAY_LABEL_W + drawnWeeks * CELL_STEP - GUTTER;
 		const height = MONTH_LABEL_H + 7 * CELL_STEP - GUTTER;
 
-		const svg = document.createElementNS(SVG_NS, "svg");
+		const doc = container.doc;
+		const svg = doc.createElementNS(SVG_NS, "svg");
 		svg.setAttribute("width", `${width}`);
 		svg.setAttribute("height", `${height}`);
 		svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
@@ -166,7 +180,7 @@ export class HeatmapRenderer {
 			const val = colorBy === "words" ? day.totalWords : day.created;
 			const level = levelFn(val);
 
-			const rect = document.createElementNS(SVG_NS, "rect");
+			const rect = doc.createElementNS(SVG_NS, "rect");
 			rect.setAttribute("x", `${x}`);
 			rect.setAttribute("y", `${y}`);
 			rect.setAttribute("width", `${CELL_SIZE}`);
@@ -194,7 +208,7 @@ export class HeatmapRenderer {
 			const d = new Date(days[dayIndex].date + "T00:00:00");
 			const m = d.getMonth();
 			if (m !== prevMonth) {
-				const text = document.createElementNS(SVG_NS, "text");
+				const text = doc.createElementNS(SVG_NS, "text");
 				text.setAttribute("x", `${DAY_LABEL_W + w * CELL_STEP}`);
 				text.setAttribute("y", `${MONTH_LABEL_H - 5}`);
 				text.classList.add("wh-month-label");
@@ -206,7 +220,7 @@ export class HeatmapRenderer {
 
 		// --- Weekday labels ---
 		for (const [row, label] of t().weekdays) {
-			const text = document.createElementNS(SVG_NS, "text");
+			const text = doc.createElementNS(SVG_NS, "text");
 			text.setAttribute("x", "0");
 			text.setAttribute(
 				"y",
