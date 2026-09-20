@@ -244,10 +244,15 @@ export class Tracker {
 	// ----------------------------------------------------------------
 
 	serialize(): TrackerData {
-		return {
-			dayBucket: Object.fromEntries(this.dayBucket),
-			fileWords: Object.fromEntries(this.fileWords),
-		};
+		// Built by hand rather than with Object.fromEntries, which erases the
+		// value type down to `any`.
+		const dayBucket: Record<string, DayStat> = {};
+		for (const [path, stat] of this.dayBucket) dayBucket[path] = stat;
+
+		const fileWords: Record<string, FileRecord> = {};
+		for (const [path, rec] of this.fileWords) fileWords[path] = rec;
+
+		return { dayBucket, fileWords };
 	}
 
 	// ----------------------------------------------------------------

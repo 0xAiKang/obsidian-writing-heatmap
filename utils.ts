@@ -17,10 +17,9 @@ type AppWithInternals = App & {
 	};
 };
 
-type WindowWithMoment = Window &
-	typeof globalThis & {
-		moment?: (date: string, format?: string) => { format: (fmt: string) => string };
-	};
+type WindowWithMoment = Window & {
+	moment?: (date: string, format?: string) => { format: (fmt: string) => string };
+};
 
 // ============================================================================
 // Date helpers
@@ -187,7 +186,10 @@ export function countWords(text: string, includeCodeBlocks: boolean): number {
 	t = t.replace(/!\[[^\]]*\]\([^)]*\)/g, "");
 
 	// Wiki links [[text]] or [[page|display]] → keep the display text
-	t = t.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_m, a, b) => b || a);
+	t = t.replace(
+		/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g,
+		(_m: string, target: string, alias?: string) => alias || target
+	);
 
 	// Markdown links [text](url) → keep the link text
 	t = t.replace(/\[([^\]]*)\]\([^)]*\)/g, "$1");
@@ -221,7 +223,7 @@ export function findDailyNote(app: App, dateStr: string): TFile | null {
 	const dailyNotes = (app as AppWithInternals).internalPlugins?.plugins?.["daily-notes"];
 	const options = dailyNotes?.instance?.options || {};
 	const folder = normalizePath(options.folder || "");
-	const format: string = options.format || "YYYY-MM-DD";
+	const format = options.format || "YYYY-MM-DD";
 
 	// Obsidian ships moment.js on window
 	const moment = (window as WindowWithMoment).moment;

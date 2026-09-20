@@ -57,7 +57,7 @@ export default class WritingHeatmapPlugin extends Plugin {
 		removeStaleTooltips();
 
 		// --- Load persisted data ---
-		const raw: PluginData | null = await this.loadData();
+		const raw = (await this.loadData()) as PluginData | null;
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, raw?.settings);
 		this.panelCreated = raw?.panelCreated ?? false;
 

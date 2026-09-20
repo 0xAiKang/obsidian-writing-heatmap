@@ -2,7 +2,7 @@
 	"id": "writing-heatmap",
 	"name": "Writing Heatmap",
 	"version": "2.2.1",
-	"minAppVersion": "1.4.0",
+	"minAppVersion": "1.8.7",
 	"description": "Visualize your daily writing as a GitHub-style heatmap in the sidebar, alongside vault-wide note, tag and usage-day counters.",
 	"author": "0xAiKang",
 	"authorUrl": "https://github.com/0xAiKang",

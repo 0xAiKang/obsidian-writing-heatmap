@@ -4,7 +4,7 @@ An Obsidian plugin that shows your writing activity as a GitHub-style heatmap in
 
 [![release](https://img.shields.io/github/v/release/0xAiKang/obsidian-writing-heatmap?style=flat-square)](https://github.com/0xAiKang/obsidian-writing-heatmap/releases/latest)
 [![license](https://img.shields.io/github/license/0xAiKang/obsidian-writing-heatmap?style=flat-square)](LICENSE)
-![obsidian](https://img.shields.io/badge/Obsidian-1.4.0%2B-7c3aed?style=flat-square)
+![obsidian](https://img.shields.io/badge/Obsidian-1.8.7%2B-7c3aed?style=flat-square)
 
 [中文文档](README.zh-CN.md)
 

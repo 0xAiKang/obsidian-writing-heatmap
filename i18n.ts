@@ -1,11 +1,12 @@
 /**
  * Two-locale string table.
  *
- * Obsidian keeps the interface language in `localStorage.language`; an unset
- * key means English. Anything Chinese uses the zh table, everything else en,
- * so the panel speaks the same language as the app around it and the plugin
- * needs no language setting of its own.
+ * Anything Chinese uses the zh table, everything else en, so the panel speaks
+ * the same language as the app around it and the plugin needs no language
+ * setting of its own.
  */
+
+import { getLanguage } from "obsidian";
 
 export interface Strings {
 	// --- Plugin-level ---
@@ -209,12 +210,6 @@ let cached: Strings | null = null;
  */
 export function t(): Strings {
 	if (cached) return cached;
-	let lang = "";
-	try {
-		lang = window.localStorage.getItem("language") ?? "";
-	} catch {
-		lang = "";
-	}
-	cached = lang.toLowerCase().startsWith("zh") ? zh : en;
+	cached = getLanguage().toLowerCase().startsWith("zh") ? zh : en;
 	return cached;
 }
