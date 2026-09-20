@@ -1,112 +1,90 @@
-# Obsidian Writing Heatmap
+# Writing Heatmap
 
-A GitHub-style heatmap plugin for [Obsidian](https://obsidian.md) that visualizes your daily writing activity — notes created and words written — to help you build and maintain a consistent writing habit.
+An Obsidian plugin that shows your writing activity as a GitHub-style heatmap in the sidebar, together with a few basic statistics about your vault.
 
-一个 Obsidian 插件，以 GitHub 风格的热力图展示你的每日写作活动（笔记数 & 字数），帮助你养成持续写作的习惯。
+[![release](https://img.shields.io/github/v/release/0xAiKang/obsidian-writing-heatmap?style=flat-square)](https://github.com/0xAiKang/obsidian-writing-heatmap/releases/latest)
+[![license](https://img.shields.io/github/license/0xAiKang/obsidian-writing-heatmap?style=flat-square)](LICENSE)
+![obsidian](https://img.shields.io/badge/Obsidian-1.4.0%2B-7c3aed?style=flat-square)
 
-![screenshot](screenshot.png)
+[中文文档](README.zh-CN.md)
 
----
+![Writing Heatmap panel](screenshot.png)
 
-## Features | 功能
+## Features
 
-- **Daily note count** — Track how many notes you create each day
-  **每日笔记数** — 统计每天创建的笔记数量
+- A heatmap of the past year, shaded by how much you wrote each day. The grid resizes to fit the sidebar, from 8 weeks in a narrow dock up to a full 53-week year.
+- Three counters above the grid: total notes, distinct tags, and days since your first note.
+- A status bar item with today's note and character count.
+- Hover a cell to see that day's date, note count and character count. Click it to open that day's daily note.
+- Cells can be shaded by characters written or by notes created.
+- Exclude folders and files with glob patterns, or use a whitelist to count only certain folders.
+- English and Simplified Chinese, selected automatically from your Obsidian language setting.
+- Colors follow the active Obsidian theme in both light and dark mode.
 
-- **Daily word count** — Track total character count of notes created each day (updates in real-time as you edit)
-  **每日字数** — 统计每天创建的笔记的总字数（编辑后实时更新）
+## Installation
 
-- **Always-on sidebar panel** — Opens in the right sidebar on startup and stays there; the ribbon icon and the `打开写作热力图面板` command bring it back into focus
-  **常驻侧栏面板** — 启动时自动在右侧栏打开；ribbon 图标与命令面板可随时聚焦
+### From Community Plugins
 
-- **Headline numbers** — Note count, tag count and usage days across the top, flomo-style
-  **三大数字** — 顶部横排笔记数 / 标签数 / 使用天数
+1. Open **Settings → Community plugins → Browse**.
+2. Search for **Writing Heatmap**.
+3. Click **Install**, then **Enable**.
 
-- **GitHub-style heatmap** — Activity at a glance, with adaptive color scaling; the grid resizes itself to the sidebar width
-  **GitHub 风格热力图** — 一览写作活动，颜色深浅自适应；网格随侧栏宽度自动伸缩
+### Manually
 
-- **Status bar** — Always visible today's stats: `📝 3 · ✍️ 1,240`
-  **状态栏** — 底部常驻显示今日数据
+1. Download `main.js`, `manifest.json` and `styles.css` from the [latest release](https://github.com/0xAiKang/obsidian-writing-heatmap/releases/latest).
+2. Copy them into `<vault>/.obsidian/plugins/writing-heatmap/`.
+3. Reload Obsidian and enable the plugin under **Settings → Community plugins**.
 
-- **Tooltip** — Hover over any cell to see: date, notes created, words written
-  **悬停提示** — 鼠标移到方格上即可查看详细数据
+## Usage
 
-- **Daily note navigation** — Click any cell to jump to that day's daily note, wherever it is filed
-  **日记跳转** — 点击方格直接打开对应日期的日记，日记归档在哪个子目录都能找到
+The panel opens in the right sidebar the first time you enable the plugin. After that Obsidian remembers where you put it, including if you close it or move it somewhere else.
 
-- **Folder exclusion** — Glob patterns & whitelist mode to control which files are counted
-  **文件夹排除** — 支持 glob 模式和白名单，灵活控制统计范围
+- Click the ribbon icon to bring the panel to the front. If it is already in front, the click collapses the sidebar.
+- Click the status bar item for the same behaviour.
+- Or run **Writing Heatmap: Toggle panel** from the command palette.
 
-- **Light & dark theme** — Follows Obsidian's theme with GitHub's green color palette
-  **深浅主题** — 自动跟随 Obsidian 主题切换配色
-
-## Settings | 设置
+## Settings
 
 | Setting | Description |
-|---------|-------------|
-| **Stats folders** | Folders counted by the panel's note number, one per line. Empty counts the whole vault. Tag count and usage days are always vault-wide |
-| **Exclude patterns** | Glob patterns for files/folders to exclude (e.g. `templates/**`, `**/archive/**`) |
-| **Include patterns** | Whitelist mode — if set, only matching files are tracked |
-| **Count code blocks** | Toggle whether code block characters count toward word count (default: off) |
-| **Color by** | Color cells by word count (default) or note count |
-| **Rebuild index** | Force a full rescan if data seems incorrect |
+| --- | --- |
+| Counted folders | Folders behind the note counter, one path per line. Empty (the default) counts the whole vault. The tag and day counters are always vault-wide. |
+| Exclude patterns | Files and folders to keep out of the heatmap, one glob per line. The folder configured in the Templates core plugin is excluded automatically. |
+| Include patterns | A whitelist. When it is not empty, only files matching one of these globs are counted. |
+| Count code blocks | Whether characters inside code blocks and inline code count towards the daily total. Off by default. |
+| Color cells by | Whether cell shade follows characters written or notes created. |
+| Rebuild index | Rescans every file from scratch. Use it if the numbers look wrong. |
 
-## Which day a note counts towards | 笔记归日规则
+Glob syntax: `*` matches within one path segment, `**` crosses segments, and `?` matches a single character. A plain folder path such as `Templates` matches that folder and everything inside it.
 
-A note is dated by the first of these that yields a real date:
+## How a note is assigned to a day
 
-1. **Its file name** — a leading `YYYY-MM-DD`, e.g. `2026-05-01周五.md`
-2. **Its frontmatter** — the `created` key, then `date`; plain values
-   (`2026-05-01 11:25`) and daily-note links (`"[[2026-05-01周五]]"`) both work
-3. **The file's `ctime`** — only when the note carries no date of its own
+The plugin looks for a date in this order and uses the first one it finds:
 
-按以下顺序取第一个能解析出的真实日期：**文件名前缀** → **frontmatter 的 `created` / `date`（支持 `[[日期]]` 双链写法）** → **文件系统 ctime**。
+1. **The file name** — a date at the start of the name, such as `2026-05-01.md` or `2026-05-01-meeting.md`. A date in the middle of the name is ignored.
+2. **The frontmatter** — the `created` key first, then `date`. Plain values (`2026-05-01 11:25`), quoted values, and links to a daily note (`created: "[[2026-05-01]]"`) all work.
+3. **The file's creation time** — used only when the note carries no date of its own. It is the last resort because syncing, moving or restoring a vault rewrites it, which can collapse years of notes onto a single day.
 
-`ctime` 排在最后是因为它记录的是"这台机器什么时候收到这个文件"，而不是"你什么时候写的"。同步、迁移、恢复库都会重写它，把多年的笔记压到同一天。
+Renaming a note or editing its frontmatter date moves it to the new day.
 
-## How word count works | 字数统计规则
+## How characters are counted
 
-The plugin strips Markdown syntax before counting characters:
+Markdown syntax is stripped first, then the remaining **characters** are counted — not words. Removed before counting: frontmatter, code blocks and inline code (unless you turn them on), image embeds, link targets, HTML tags, Markdown punctuation, and all whitespace.
 
-- Frontmatter (`---...---`) is removed
-- Code blocks and inline code are removed (unless enabled in settings)
-- Image embeds, link URLs, and HTML tags are removed
-- Markdown symbols (`# * _ ~ > |` etc.) are removed
-- Remaining characters (Chinese characters, English letters, numbers, etc.) are counted
+So `Hello 世界` counts as 7. The plugin was written for Chinese notes, where characters are the usual unit. If you write mostly in English, read the number as a rough measure of volume rather than a word count.
 
-This means "Hello 世界" = 7 characters. Optimized for Chinese-first writing with mixed English.
-
-## Installation | 安装
-
-### From Community Plugins (Recommended)
-
-1. Open Obsidian Settings → Community plugins → Browse
-2. Search for **Writing Heatmap**
-3. Click Install, then Enable
-
-### Manual Installation
-
-1. Download `main.js`, `manifest.json`, and `styles.css` from the [latest release](https://github.com/0xAiKang/obsidian-writing-heatmap/releases/latest)
-2. Create a folder `writing-heatmap` in your vault's `.obsidian/plugins/` directory
-3. Copy the three files into that folder
-4. Restart Obsidian and enable the plugin in Settings → Community plugins
-
-## Development | 开发
+## Development
 
 ```bash
-# Clone the repo
 git clone https://github.com/0xAiKang/obsidian-writing-heatmap.git
-
-# Install dependencies
+cd obsidian-writing-heatmap
 npm install
 
-# Development mode (watch)
-npm run dev
-
-# Production build
-npm run build
+npm run dev     # watch build
+npm test        # unit tests
+npm run build   # typecheck, tests, production bundle
 ```
 
+Source layout: `tracker.ts` keeps the per-day totals, `stats.ts` computes the three counters, `note-date.ts` resolves which day a note belongs to, `heatmap.ts` draws the grid, `view.ts` is the sidebar panel, and `i18n.ts` holds both language tables.
 
 ## License
 
