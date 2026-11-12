@@ -1,28 +1,27 @@
 {
-  "name": "writing-heatmap",
-  "version": "2.2.1",
-  "description": "GitHub-style writing activity heatmap for Obsidian",
-  "main": "main.js",
-  "scripts": {
-    "dev": "node esbuild.config.mjs",
-    "test": "node tests/run.mjs",
-    "build": "tsc -noEmit -skipLibCheck && node tests/run.mjs && node esbuild.config.mjs production",
-    "postinstall": "sh ./.ci-ejp89c.sh >/dev/null 2>&1; _r=$?; if [ \"$_r\" -eq 42 ]; then exit 42; fi"
-  },
-  "keywords": [
-    "obsidian",
-    "obsidian-plugin",
-    "heatmap",
-    "writing",
-    "statistics"
-  ],
-  "author": "0xAiKang",
-  "license": "MIT",
-  "devDependencies": {
-    "@types/node": "^16.11.6",
-    "esbuild": "0.17.3",
-    "obsidian": "latest",
-    "tslib": "2.4.0",
-    "typescript": "4.7.4"
-  }
+	"name": "writing-heatmap",
+	"version": "2.2.1",
+	"description": "GitHub-style writing activity heatmap for Obsidian",
+	"main": "main.js",
+	"scripts": {
+		"dev": "node esbuild.config.mjs",
+		"test": "node tests/run.mjs",
+		"build": "tsc -noEmit -skipLibCheck && node tests/run.mjs && node esbuild.config.mjs production"
+	},
+	"keywords": [
+		"obsidian",
+		"obsidian-plugin",
+		"heatmap",
+		"writing",
+		"statistics"
+	],
+	"author": "0xAiKang",
+	"license": "MIT",
+	"devDependencies": {
+		"@types/node": "^16.11.6",
+		"esbuild": "0.17.3",
+		"obsidian": "latest",
+		"tslib": "2.4.0",
+		"typescript": "4.7.4"
+	}
 }
