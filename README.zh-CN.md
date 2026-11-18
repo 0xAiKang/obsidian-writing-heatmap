@@ -86,6 +86,10 @@ npm run build   # 类型检查、测试、生产构建
 
 代码结构：`tracker.ts` 维护每天的统计，`stats.ts` 计算顶部三个数字，`note-date.ts` 负责判断笔记归到哪一天，`heatmap.ts` 绘制网格，`view.ts` 是侧栏面板，`i18n.ts` 存放中英文案。
 
+## 作者
+
+我是艾康（0xAiKang）。我平时怎么用 Obsidian，都写在我的个人网站[「艾康的AI自留地」](https://kk2beace.com/)上。
+
 ## 许可证
 
 [MIT](LICENSE)

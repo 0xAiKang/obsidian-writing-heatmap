@@ -86,6 +86,10 @@ npm run build   # typecheck, tests, production bundle
 
 Source layout: `tracker.ts` keeps the per-day totals, `stats.ts` computes the three counters, `note-date.ts` resolves which day a note belongs to, `heatmap.ts` draws the grid, `view.ts` is the sidebar panel, and `i18n.ts` holds both language tables.
 
+## Author
+
+I’m 0xAiKang. I write about how I use Obsidian on my personal site, [艾康的AI自留地](https://kk2beace.com/) (in Chinese).
+
 ## License
 
 [MIT](LICENSE)
